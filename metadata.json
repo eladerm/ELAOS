@@ -1,0 +1,5 @@
+{
+  "name": "ElaOS - Clinic Kiosk",
+  "description": "A highly restricted, Apple-styled kiosk environment for aesthetic clinics with integrated telemetry and monitoring.",
+  "requestFramePermissions": []
+}
