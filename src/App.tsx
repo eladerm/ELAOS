@@ -11,26 +11,36 @@ function BootScreen({ onComplete }: { onComplete: () => void }) {
       setProgress(p => {
         if (p >= 100) {
           clearInterval(interval);
-          setTimeout(onComplete, 500);
+          setTimeout(onComplete, 800);
           return 100;
         }
-        return p + Math.floor(Math.random() * 15) + 5;
+        return p + Math.floor(Math.random() * 8) + 2;
       });
-    }, 200);
+    }, 150);
     return () => clearInterval(interval);
   }, [onComplete]);
 
   return (
-    <div className="h-screen w-screen bg-black flex flex-col items-center justify-center cursor-none">
-      <Command className="w-20 h-20 text-white mb-12 animate-pulse" />
-      <div className="w-64 h-1 bg-white/10 rounded-full overflow-hidden">
-        <div 
-          className="h-full bg-white transition-all duration-200 ease-out" 
-          style={{ width: `${progress}%` }} 
-        />
-      </div>
-      <div className="text-white/40 text-[10px] mt-6 font-mono tracking-widest uppercase">
-        Loading ElaOS Kernel... {progress}%
+    <div className="h-screen w-screen bg-gradient-animate flex flex-col items-center justify-center cursor-none relative overflow-hidden">
+      {/* Abstract decorative elements */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl mix-blend-screen animate-pulse" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl mix-blend-screen animate-pulse" style={{ animationDelay: '1s' }} />
+      
+      <div className="z-10 flex flex-col items-center">
+        <h1 className="text-5xl font-bold text-white tracking-[0.2em] mb-12 drop-shadow-lg">ElaOS</h1>
+        
+        <div className="w-80 h-1.5 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm shadow-inner">
+          <div 
+            className="h-full bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400 transition-all duration-300 ease-out relative" 
+            style={{ width: `${progress}%` }} 
+          >
+            <div className="absolute inset-0 bg-white/20 animate-pulse" />
+          </div>
+        </div>
+        
+        <div className="text-indigo-200/60 text-xs mt-8 font-mono tracking-widest uppercase h-4">
+          {progress === 100 ? 'Listo!' : `Cargando núcleo del sistema... ${progress}%`}
+        </div>
       </div>
     </div>
   );

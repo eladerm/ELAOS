@@ -29,7 +29,24 @@ import {
   Crop,
   RotateCw,
   Keyboard,
-  Download
+  Download,
+  ArrowLeft,
+  ArrowRight,
+  Home,
+  Star,
+  MoreVertical,
+  Plus,
+  UserCircle,
+  Puzzle,
+  Folder,
+  File,
+  FolderOpen,
+  HardDrive,
+  Trash2,
+  Upload,
+  FolderPlus,
+  Grid,
+  List
 } from 'lucide-react';
 import { useTelemetry } from './TelemetryContext';
 import { cn } from './utils';
@@ -38,7 +55,7 @@ import { cn } from './utils';
 
 function ClinicDashboard() {
   return (
-    <div className="p-6 h-full flex flex-col bg-[#F5F5F7]">
+    <div className="p-6 h-full overflow-y-auto flex flex-col bg-[#F5F5F7]">
       <h2 className="text-2xl font-semibold mb-6 text-slate-800">Aesthetic Clinic Dashboard</h2>
       <div className="grid grid-cols-3 gap-6 flex-1">
         <div className="col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
@@ -95,12 +112,142 @@ function ClinicDashboard() {
   );
 }
 
+function FakeGoogle({ onSearch }: { onSearch: (q: string) => void }) {
+  const [q, setQ] = useState('');
+  return (
+    <div className="flex flex-col items-center justify-center h-full w-full bg-white">
+      <div className="text-6xl font-bold mb-8 text-slate-800 tracking-tighter">
+        <span className="text-blue-500">G</span>
+        <span className="text-red-500">o</span>
+        <span className="text-yellow-500">o</span>
+        <span className="text-blue-500">g</span>
+        <span className="text-green-500">l</span>
+        <span className="text-red-500">e</span>
+      </div>
+      <form onSubmit={(e) => { e.preventDefault(); onSearch(q); }} className="w-full max-w-2xl px-4">
+        <div className="flex items-center bg-white border border-slate-200 hover:shadow-md focus-within:shadow-md rounded-full px-4 py-3 transition-shadow">
+          <Search className="w-5 h-5 text-slate-400 mr-3" />
+          <input 
+            type="text" 
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            className="flex-1 outline-none text-lg text-slate-800"
+            autoFocus
+          />
+        </div>
+        <div className="flex justify-center gap-3 mt-8">
+          <button type="submit" className="bg-[#f8f9fa] hover:bg-[#f8f9fa] border border-[#f8f9fa] hover:border-[#dadce0] hover:shadow-sm text-sm text-[#3c4043] px-4 py-2 rounded transition-all">Google Search</button>
+          <button type="button" className="bg-[#f8f9fa] hover:bg-[#f8f9fa] border border-[#f8f9fa] hover:border-[#dadce0] hover:shadow-sm text-sm text-[#3c4043] px-4 py-2 rounded transition-all">I'm Feeling Lucky</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function FakeSearchResults({ query, onSearch, onNavigate }: { query: string, onSearch: (q: string) => void, onNavigate: (url: string) => void }) {
+  const [q, setQ] = useState(query);
+  
+  return (
+    <div className="flex flex-col h-full w-full bg-white overflow-y-auto">
+      <div className="flex items-center p-6 border-b border-slate-200 gap-8">
+        <div className="text-3xl font-bold text-slate-800 tracking-tighter cursor-pointer" onClick={() => onSearch('')}>
+          <span className="text-blue-500">G</span>
+          <span className="text-red-500">o</span>
+          <span className="text-yellow-500">o</span>
+          <span className="text-blue-500">g</span>
+          <span className="text-green-500">l</span>
+          <span className="text-red-500">e</span>
+        </div>
+        <form onSubmit={(e) => { e.preventDefault(); onSearch(q); }} className="flex-1 max-w-2xl">
+          <div className="flex items-center bg-white border border-slate-200 hover:shadow-md focus-within:shadow-md rounded-full px-4 py-2.5 transition-shadow">
+            <input 
+              type="text" 
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              className="flex-1 outline-none text-base text-slate-800"
+            />
+            <Search className="w-5 h-5 text-blue-500 ml-3 cursor-pointer" onClick={() => onSearch(q)} />
+          </div>
+        </form>
+      </div>
+      
+      <div className="p-8 max-w-3xl ml-24">
+        <div className="text-slate-500 text-sm mb-6">About 2,140,000,000 results (0.42 seconds)</div>
+        
+        <div className="mb-8">
+          <div className="text-sm text-slate-800 mb-1 flex items-center gap-2">
+            <Globe className="w-4 h-4" /> https://www.{query.replace(/\s+/g, '').toLowerCase()}.com
+          </div>
+          <h3 
+            className="text-xl text-blue-800 hover:underline cursor-pointer mb-1"
+            onClick={() => onNavigate(`https://www.${query.replace(/\s+/g, '').toLowerCase()}.com`)}
+          >
+            Official {query} Website - Login & Access
+          </h3>
+          <p className="text-slate-600 text-sm leading-relaxed">
+            Welcome to the official portal for {query}. Access your account securely, manage your settings, and connect with others. Fast, simple, and secure web experience.
+          </p>
+        </div>
+
+        <div className="mb-8">
+          <div className="text-sm text-slate-800 mb-1 flex items-center gap-2">
+            <Globe className="w-4 h-4" /> https://en.wikipedia.org › wiki › {query.replace(/\s+/g, '_')}
+          </div>
+          <h3 
+            className="text-xl text-blue-800 hover:underline cursor-pointer mb-1"
+            onClick={() => onNavigate(`https://en.wikipedia.org/wiki/${query.replace(/\s+/g, '_')}`)}
+          >
+            {query} - Wikipedia
+          </h3>
+          <p className="text-slate-600 text-sm leading-relaxed">
+            {query} is a popular online service and application used by millions worldwide. It provides seamless communication and synchronization across devices...
+          </p>
+        </div>
+
+        <div className="mb-8">
+          <div className="text-sm text-slate-800 mb-1 flex items-center gap-2">
+            <Globe className="w-4 h-4" /> https://www.techradar.com › reviews › {query.replace(/\s+/g, '-')}
+          </div>
+          <h3 
+            className="text-xl text-blue-800 hover:underline cursor-pointer mb-1"
+            onClick={() => onNavigate(`https://www.techradar.com/reviews/${query.replace(/\s+/g, '-')}`)}
+          >
+            {query} Review 2026: Is it still the best?
+          </h3>
+          <p className="text-slate-600 text-sm leading-relaxed">
+            We take an in-depth look at {query} to see if it holds up against modern alternatives. Discover the pros, cons, and hidden features you might be missing.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface Tab {
+  id: string;
+  url: string;
+  history: string[];
+  historyIndex: number;
+}
+
 function SecureBrowser() {
   const { logEvent } = useTelemetry();
-  // Usamos igu=1 para permitir que Google se renderice dentro de un iframe (bypass de X-Frame-Options para prototipos)
-  const [url, setUrl] = useState('https://www.google.com/webhp?igu=1');
+  
+  const [tabs, setTabs] = useState<Tab[]>([{
+    id: 'tab-1',
+    url: 'https://www.google.com/webhp?igu=1',
+    history: ['https://www.google.com/webhp?igu=1'],
+    historyIndex: 0
+  }]);
+  const [activeTabId, setActiveTabId] = useState('tab-1');
   const [inputUrl, setInputUrl] = useState('https://www.google.com');
-  const [error, setError] = useState('');
+
+  const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0];
+  const url = activeTab.url;
+
+  useEffect(() => {
+    setInputUrl(activeTab.url.replace('&igu=1', '').replace('?igu=1', '').replace(/&reload=\d+/, '').replace(/\?reload=\d+/, ''));
+  }, [activeTab.url, activeTabId]);
 
   const handleNavigate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,59 +255,235 @@ function SecureBrowser() {
     let finalUrl = inputUrl.trim();
     let displayUrl = finalUrl;
     
-    // Si no empieza con http/https
     if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
-      // Si tiene un punto y no tiene espacios, asumimos que es un dominio (ej. apple.com)
       if (finalUrl.includes('.') && !finalUrl.includes(' ')) {
         finalUrl = 'https://' + finalUrl;
         displayUrl = finalUrl;
       } else {
-        // Si no, lo tratamos como una búsqueda en Google
         finalUrl = `https://www.google.com/search?q=${encodeURIComponent(finalUrl)}&igu=1`;
         displayUrl = finalUrl;
       }
     }
 
-    // Si el usuario intenta ir a google, forzamos el parámetro igu=1 para evitar el bloqueo del iframe
     if (finalUrl.includes('google.com') && !finalUrl.includes('igu=1')) {
       finalUrl += (finalUrl.includes('?') ? '&' : '?') + 'igu=1';
     }
 
-    setError('');
-    setUrl(finalUrl);
-    setInputUrl(displayUrl.replace('&igu=1', '').replace('?igu=1', '')); // Ocultamos el parámetro técnico al usuario
+    setTabs(prev => prev.map(tab => {
+      if (tab.id === activeTabId) {
+        const newHistory = tab.history.slice(0, tab.historyIndex + 1);
+        newHistory.push(finalUrl);
+        return { ...tab, url: finalUrl, history: newHistory, historyIndex: newHistory.length - 1 };
+      }
+      return tab;
+    }));
+    
     logEvent('NETWORK_ACCESS', `Navigated to: ${displayUrl}`);
   };
 
+  const handleNewTab = () => {
+    const newTabId = `tab-${Date.now()}`;
+    const newTab = {
+      id: newTabId,
+      url: 'https://www.google.com/webhp?igu=1',
+      history: ['https://www.google.com/webhp?igu=1'],
+      historyIndex: 0
+    };
+    setTabs(prev => [...prev, newTab]);
+    setActiveTabId(newTabId);
+  };
+
+  const handleCloseTab = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (tabs.length === 1) return;
+    
+    const newTabs = tabs.filter(t => t.id !== id);
+    setTabs(newTabs);
+    if (activeTabId === id) {
+      setActiveTabId(newTabs[newTabs.length - 1].id);
+    }
+  };
+
+  const handleBack = () => {
+    if (activeTab.historyIndex > 0) {
+      setTabs(prev => prev.map(tab => {
+        if (tab.id === activeTabId) {
+          const newIndex = tab.historyIndex - 1;
+          return { ...tab, url: tab.history[newIndex], historyIndex: newIndex };
+        }
+        return tab;
+      }));
+    }
+  };
+
+  const handleForward = () => {
+    if (activeTab.historyIndex < activeTab.history.length - 1) {
+      setTabs(prev => prev.map(tab => {
+        if (tab.id === activeTabId) {
+          const newIndex = tab.historyIndex + 1;
+          return { ...tab, url: tab.history[newIndex], historyIndex: newIndex };
+        }
+        return tab;
+      }));
+    }
+  };
+
+  const handleReload = () => {
+    const currentUrl = activeTab.url;
+    setTabs(prev => prev.map(tab => {
+      if (tab.id === activeTabId) {
+        return { ...tab, url: currentUrl + (currentUrl.includes('?') ? '&' : '?') + 'reload=' + Date.now() };
+      }
+      return tab;
+    }));
+    setTimeout(() => {
+      setTabs(prev => prev.map(tab => {
+        if (tab.id === activeTabId) {
+          return { ...tab, url: currentUrl };
+        }
+        return tab;
+      }));
+    }, 50);
+  };
+
+  const handleHome = () => {
+    const homeUrl = 'https://www.google.com/webhp?igu=1';
+    setTabs(prev => prev.map(tab => {
+      if (tab.id === activeTabId) {
+        const newHistory = tab.history.slice(0, tab.historyIndex + 1);
+        newHistory.push(homeUrl);
+        return { ...tab, url: homeUrl, history: newHistory, historyIndex: newHistory.length - 1 };
+      }
+      return tab;
+    }));
+  };
+
+  const navigateTo = (newUrl: string) => {
+    setTabs(prev => prev.map(tab => {
+      if (tab.id === activeTabId) {
+        const newHistory = tab.history.slice(0, tab.historyIndex + 1);
+        newHistory.push(newUrl);
+        return { ...tab, url: newUrl, history: newHistory, historyIndex: newHistory.length - 1 };
+      }
+      return tab;
+    }));
+  };
+
   return (
-    <div className="flex flex-col h-full bg-white">
-      <div className="flex items-center gap-4 p-3 border-b border-slate-200 bg-slate-50/80 backdrop-blur-md">
-        <div className="flex gap-2">
-          <button className="p-1.5 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-200/50"><Minus className="w-4 h-4 rotate-90" /></button>
-          <button className="p-1.5 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-200/50"><Minus className="w-4 h-4" /></button>
+    <div className="flex flex-col h-full bg-[#f1f3f4] rounded-t-lg overflow-hidden">
+      {/* Tabs Bar */}
+      <div className="flex items-end px-2 pt-2 gap-1 bg-[#dfe1e5] overflow-x-auto no-scrollbar">
+        {tabs.map(tab => {
+          const isActive = tab.id === activeTabId;
+          const title = tab.url.includes('google.com/search') 
+            ? `${new URLSearchParams(tab.url.split('?')[1]).get('q')} - Google Search` 
+            : tab.url.replace('https://', '').replace('http://', '').split('/')[0] || 'New Tab';
+            
+          return (
+            <div 
+              key={tab.id}
+              onClick={() => setActiveTabId(tab.id)}
+              className={cn(
+                "group flex items-center gap-2 px-3 py-2 rounded-t-lg min-w-[160px] max-w-[240px] cursor-pointer transition-colors relative",
+                isActive ? "bg-white shadow-[0_-1px_2px_rgba(0,0,0,0.05)] z-10" : "hover:bg-white/50"
+              )}
+            >
+              <div className="w-4 h-4 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                {tab.url.includes('google.com') ? <span className="text-[10px] font-bold text-blue-500">G</span> : <Globe className="w-3 h-3 text-slate-500" />}
+              </div>
+              <span className="text-xs text-slate-700 truncate flex-1 select-none">
+                {title}
+              </span>
+              <button 
+                onClick={(e) => handleCloseTab(e, tab.id)}
+                className={cn(
+                  "p-1 rounded-full text-slate-500 hover:bg-slate-200",
+                  !isActive && "opacity-0 group-hover:opacity-100"
+                )}
+              >
+                <X className="w-3 h-3" />
+              </button>
+              {!isActive && <div className="absolute right-0 top-1/4 bottom-1/4 w-[1px] bg-slate-300 group-hover:hidden" />}
+            </div>
+          );
+        })}
+        <button onClick={handleNewTab} className="p-2 hover:bg-slate-300/50 rounded-full text-slate-600 mb-1 ml-1 flex-shrink-0"><Plus className="w-4 h-4" /></button>
+      </div>
+
+      {/* Navigation Bar */}
+      <div className="flex items-center gap-2 px-2 py-1.5 bg-white border-b border-slate-200">
+        <div className="flex items-center gap-1">
+          <button 
+            onClick={handleBack}
+            disabled={activeTab.historyIndex === 0}
+            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors disabled:opacity-50 disabled:hover:bg-transparent"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <button 
+            onClick={handleForward}
+            disabled={activeTab.historyIndex === activeTab.history.length - 1}
+            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors disabled:opacity-50 disabled:hover:bg-transparent"
+          >
+            <ArrowRight className="w-4 h-4" />
+          </button>
+          <button onClick={handleReload} className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-full transition-colors"><RotateCw className="w-4 h-4" /></button>
+          <button onClick={handleHome} className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-full transition-colors"><Home className="w-4 h-4" /></button>
         </div>
-        <form onSubmit={handleNavigate} className="flex-1 flex justify-center">
-          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-1.5 w-full max-w-2xl shadow-sm focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all">
-            <Lock className="w-3.5 h-3.5 text-slate-400" />
+        
+        <form onSubmit={handleNavigate} className="flex-1 flex">
+          <div className="flex items-center gap-2 bg-[#f1f3f4] hover:bg-[#e8eaed] focus-within:bg-white focus-within:border-blue-500 focus-within:shadow-[0_0_0_1px_#3b82f6] border border-transparent rounded-full px-4 py-1 w-full transition-all">
+            <Lock className="w-3.5 h-3.5 text-slate-500" />
             <input 
               type="text" 
               value={inputUrl}
               onChange={(e) => setInputUrl(e.target.value)}
-              placeholder="Search Google or enter a URL"
-              className="flex-1 text-sm outline-none text-slate-700 bg-transparent"
+              placeholder="Search Google or type a URL"
+              className="flex-1 text-sm outline-none text-slate-800 bg-transparent h-6"
             />
+            <button type="button" className="p-1 hover:bg-slate-200 rounded-full text-slate-500"><Star className="w-4 h-4" /></button>
           </div>
         </form>
+
+        <div className="flex items-center gap-1">
+          <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-full"><Puzzle className="w-4 h-4" /></button>
+          <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-full"><UserCircle className="w-5 h-5" /></button>
+          <button className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-full"><MoreVertical className="w-4 h-4" /></button>
+        </div>
       </div>
-      <div className="flex-1 bg-[#F5F5F7] flex items-center justify-center relative">
-        {error ? (
-          <div className="text-center max-w-md p-8">
-            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <ShieldAlert className="w-8 h-8" />
-            </div>
-            <h2 className="text-xl font-semibold text-slate-900 mb-2">Connection Blocked</h2>
-            <p className="text-slate-500 text-sm">{error}</p>
-          </div>
+      
+      {/* Bookmarks Bar */}
+      <div className="flex items-center gap-4 px-3 py-1 bg-white border-b border-slate-200 text-xs text-slate-600">
+        <button onClick={() => navigateTo('https://chrome.google.com/webstore')} className="flex items-center gap-1.5 hover:bg-slate-100 px-2 py-1 rounded"><Globe className="w-3.5 h-3.5" /> ElaOS Web Store</button>
+        <button onClick={() => navigateTo('https://myaccount.google.com/security')} className="flex items-center gap-1.5 hover:bg-slate-100 px-2 py-1 rounded"><ShieldAlert className="w-3.5 h-3.5" /> Security Dashboard</button>
+      </div>
+
+      <div className="flex-1 bg-white flex items-center justify-center relative">
+        {(url.includes('google.com') && !url.includes('/search')) ? (
+          <FakeGoogle onSearch={(q) => {
+            const finalUrl = `https://www.google.com/search?q=${encodeURIComponent(q)}&igu=1`;
+            navigateTo(finalUrl);
+            logEvent('NETWORK_ACCESS', `Navigated to: ${finalUrl}`);
+          }} />
+        ) : (url.includes('google.com/search')) ? (
+          <FakeSearchResults 
+            query={new URLSearchParams(url.split('?')[1]).get('q') || ''} 
+            onSearch={(q) => {
+              if (!q) {
+                const homeUrl = 'https://www.google.com/webhp?igu=1';
+                navigateTo(homeUrl);
+                logEvent('NETWORK_ACCESS', `Navigated to: ${homeUrl}`);
+                return;
+              }
+              const finalUrl = `https://www.google.com/search?q=${encodeURIComponent(q)}&igu=1`;
+              navigateTo(finalUrl);
+              logEvent('NETWORK_ACCESS', `Navigated to: ${finalUrl}`);
+            }} 
+            onNavigate={(newUrl) => {
+              navigateTo(newUrl);
+              logEvent('NETWORK_ACCESS', `Navigated to: ${newUrl}`);
+            }}
+          />
         ) : (
           <div className="w-full h-full bg-white flex flex-col items-center justify-center relative">
             <iframe 
@@ -455,14 +778,17 @@ function ElaPhotos() {
 
 // --- OS Components ---
 
+import { FileManager } from './FileManager';
+
 const APPS = [
-  { id: 'clinic-web', name: 'Clinic System', icon: Monitor, color: 'bg-indigo-600', component: ClinicWebSystem },
-  { id: 'docs', name: 'Ela Docs', icon: FileText, color: 'bg-blue-500', component: ElaDocs },
-  { id: 'sheets', name: 'Ela Sheets', icon: Table, color: 'bg-emerald-500', component: ElaSheets },
-  { id: 'photos', name: 'Ela Photos', icon: ImageIcon, color: 'bg-purple-500', component: ElaPhotos },
-  { id: 'browser', name: 'Secure Web', icon: Globe, color: 'bg-sky-500', component: SecureBrowser },
-  { id: 'interpreter', name: 'Key Interpreter', icon: Keyboard, color: 'bg-rose-500', component: KeyAnalyzer },
-  { id: 'telemetry', name: 'ESF Audit', icon: ShieldAlert, color: 'bg-slate-800', component: TelemetryAdmin },
+  { id: 'clinic-web', name: 'Clinic System', icon: Monitor, color: 'bg-gradient-to-br from-indigo-500 to-indigo-700', component: ClinicWebSystem },
+  { id: 'files', name: 'File Explorer', icon: Folder, color: 'bg-gradient-to-br from-amber-400 to-amber-600', component: FileManager },
+  { id: 'docs', name: 'Ela Docs', icon: FileText, color: 'bg-gradient-to-br from-blue-400 to-blue-600', component: ElaDocs },
+  { id: 'sheets', name: 'Ela Sheets', icon: Table, color: 'bg-gradient-to-br from-emerald-400 to-emerald-600', component: ElaSheets },
+  { id: 'photos', name: 'Gallery', icon: ImageIcon, color: 'bg-gradient-to-br from-purple-400 to-purple-600', component: ElaPhotos },
+  { id: 'browser', name: 'Secure Web', icon: Globe, color: 'bg-gradient-to-br from-sky-400 to-sky-600', component: SecureBrowser },
+  { id: 'interpreter', name: 'Key Interpreter', icon: Keyboard, color: 'bg-gradient-to-br from-rose-400 to-rose-600', component: KeyAnalyzer },
+  { id: 'telemetry', name: 'ESF Audit', icon: ShieldAlert, color: 'bg-gradient-to-br from-slate-700 to-slate-900', component: TelemetryAdmin },
 ];
 
 const BACKGROUNDS = [
@@ -699,7 +1025,7 @@ export default function Desktop({ onLock, onShowExit }: { onLock?: () => void, o
             
             // Calculate a stable cascading position based on appId length/chars
             const hash = appId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-            const offset = (hash % 10) * 30 + 50;
+            const offset = (hash % 5) * 20;
             
             return (
               <motion.div
@@ -712,21 +1038,24 @@ export default function Desktop({ onLock, onShowExit }: { onLock?: () => void, o
                 exit={{ opacity: 0, scale: 0.95 }}
                 style={{ 
                   zIndex: isActive ? 50 : 10,
-                  top: offset,
-                  left: offset
+                  top: `calc(50% - 300px + ${offset}px)`,
+                  left: `calc(50% - 400px + ${offset}px)`
                 }}
                 className="absolute w-[800px] h-[600px] glass-panel rounded-2xl overflow-hidden flex flex-col shadow-2xl border border-white/20"
               >
                 {/* Window Chrome */}
                 <div className="h-12 bg-white/50 backdrop-blur-md border-b border-slate-200/50 flex items-center px-4 shrink-0 cursor-grab active:cursor-grabbing">
-                  <div className="flex gap-2">
+                  <div className="flex gap-2" onPointerDown={(e) => e.stopPropagation()}>
                     <button 
                       onClick={(e) => { e.stopPropagation(); closeApp(appId); }}
                       className="w-3 h-3 rounded-full bg-red-400 hover:bg-red-500 flex items-center justify-center group"
                     >
                       <X className="w-2 h-2 text-red-900 opacity-0 group-hover:opacity-100" />
                     </button>
-                    <button className="w-3 h-3 rounded-full bg-amber-400 hover:bg-amber-500 flex items-center justify-center group">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); closeApp(appId); }}
+                      className="w-3 h-3 rounded-full bg-amber-400 hover:bg-amber-500 flex items-center justify-center group"
+                    >
                       <Minus className="w-2 h-2 text-amber-900 opacity-0 group-hover:opacity-100" />
                     </button>
                     <button className="w-3 h-3 rounded-full bg-emerald-400 hover:bg-emerald-500 flex items-center justify-center group">
@@ -740,7 +1069,7 @@ export default function Desktop({ onLock, onShowExit }: { onLock?: () => void, o
                 </div>
                 
                 {/* App Content */}
-                <div className="flex-1 overflow-hidden relative bg-white" onPointerDown={(e) => e.stopPropagation()}>
+                <div className="flex-1 overflow-y-auto overflow-x-hidden relative bg-white" onPointerDown={(e) => e.stopPropagation()}>
                   <app.component />
                 </div>
               </motion.div>
@@ -750,7 +1079,7 @@ export default function Desktop({ onLock, onShowExit }: { onLock?: () => void, o
       </div>
 
       {/* Dock */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 glass-panel rounded-3xl p-2 flex gap-2 shadow-2xl border-white/20">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 glass-panel rounded-[2rem] p-2.5 flex gap-3 shadow-2xl border-white/30 bg-white/40">
         {APPS.map((app) => (
           <button
             key={app.id}
@@ -758,17 +1087,19 @@ export default function Desktop({ onLock, onShowExit }: { onLock?: () => void, o
             className="relative group outline-none"
           >
             <div className={cn(
-              "w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-sm transition-transform duration-200 group-hover:-translate-y-2 group-hover:scale-110",
+              "w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg transition-all duration-300 group-hover:-translate-y-3 group-hover:scale-110 border border-white/20 relative overflow-hidden",
               app.color
             )}>
-              <app.icon className="w-7 h-7" />
+              <div className="absolute inset-0 bg-gradient-to-tr from-black/20 to-transparent" />
+              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <app.icon className="w-7 h-7 relative z-10 drop-shadow-md" />
             </div>
             {openApps.includes(app.id) && (
-              <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-slate-800" />
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-slate-800 shadow-sm" />
             )}
             
             {/* Tooltip */}
-            <div className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 bg-slate-800/90 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none backdrop-blur-sm">
+            <div className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-slate-800/90 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none backdrop-blur-sm shadow-xl font-medium">
               {app.name}
             </div>
           </button>
