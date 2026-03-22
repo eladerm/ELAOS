@@ -7,17 +7,24 @@ let unlockTimeout;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: 1920,
+    height: 1080,
     kiosk: true, // Modo Kiosco (Pantalla completa, sin bordes, siempre encima)
     alwaysOnTop: true,
     fullscreen: true,
     frame: false,
+    show: false, // Ocultar hasta que esté listo para evitar pantalla blanca
+    backgroundColor: '#000000', // Fondo negro mientras carga
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
       contextIsolation: true
     }
+  });
+
+  // Mostrar la ventana solo cuando esté lista para renderizar
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
   });
 
   // Prevenir que se cierre con Alt+F4

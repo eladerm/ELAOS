@@ -451,10 +451,11 @@ const BACKGROUNDS = [
   'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=2564&auto=format&fit=crop'
 ];
 
-export default function Desktop() {
+export default function Desktop({ onLock }: { onLock?: () => void }) {
   const [time, setTime] = useState(new Date());
   const [activeApp, setActiveApp] = useState<string | null>(null);
   const [bgIndex, setBgIndex] = useState(0);
+  const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const { logEvent } = useTelemetry();
 
   useEffect(() => {
@@ -486,22 +487,117 @@ export default function Desktop() {
       style={{ backgroundImage: `url(${BACKGROUNDS[bgIndex]})` }}
     >
       {/* Top Menu Bar (macOS style) */}
-      <div className="h-7 glass-panel-dark text-white/90 text-[13px] font-medium px-4 flex items-center justify-between z-50 rounded-none border-x-0 border-t-0 border-b-white/10">
-        <div className="flex items-center gap-4">
-          <Command className="w-3.5 h-3.5" />
-          <span className="font-semibold">ElaOS</span>
+      <div className="h-7 glass-panel-dark text-white/90 text-[13px] font-medium px-2 flex items-center justify-between z-50 rounded-none border-x-0 border-t-0 border-b-white/10 relative">
+        {activeMenu && (
+          <div className="fixed inset-0 z-40" onClick={() => setActiveMenu(null)} />
+        )}
+        <div className="flex items-center gap-1 z-50">
+          {/* ElaOS Menu */}
+          <div className="relative">
+            <button onClick={() => setActiveMenu(activeMenu === 'apple' ? null : 'apple')} className={cn("flex items-center gap-2 px-2 py-1 rounded transition-colors", activeMenu === 'apple' ? "bg-white/20" : "hover:bg-white/10")}>
+              <Command className="w-3.5 h-3.5" />
+              <span className="font-semibold">ElaOS</span>
+            </button>
+            {activeMenu === 'apple' && (
+              <div className="absolute top-full left-0 mt-1 w-56 bg-white/95 backdrop-blur-xl border border-slate-200/50 rounded-lg shadow-2xl py-1 text-slate-800">
+                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">About ElaOS</button>
+                <div className="h-px bg-slate-200/50 my-1" />
+                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">System Settings...</button>
+                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">App Store</button>
+                <div className="h-px bg-slate-200/50 my-1" />
+                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Force Quit...</button>
+                <div className="h-px bg-slate-200/50 my-1" />
+                <button onClick={() => { setActiveMenu(null); onLock?.(); }} className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Lock Screen</button>
+              </div>
+            )}
+          </div>
+          
           {activeApp && (
-            <span className="font-semibold">{APPS.find(a => a.id === activeApp)?.name}</span>
+            <span className="font-semibold px-2">{APPS.find(a => a.id === activeApp)?.name}</span>
           )}
-          <span className="text-white/60 hover:text-white cursor-default">File</span>
-          <span className="text-white/60 hover:text-white cursor-default">Edit</span>
-          <span className="text-white/60 hover:text-white cursor-default">View</span>
+          
+          {/* File Menu */}
+          <div className="relative">
+            <button onClick={() => setActiveMenu(activeMenu === 'file' ? null : 'file')} className={cn("px-2 py-1 rounded transition-colors", activeMenu === 'file' ? "bg-white/20" : "hover:bg-white/10")}>File</button>
+            {activeMenu === 'file' && (
+              <div className="absolute top-full left-0 mt-1 w-48 bg-white/95 backdrop-blur-xl border border-slate-200/50 rounded-lg shadow-2xl py-1 text-slate-800">
+                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">New Window</button>
+                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Open...</button>
+                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Open Recent</button>
+                <div className="h-px bg-slate-200/50 my-1" />
+                <button onClick={() => { setActiveMenu(null); closeApp(); }} className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Close Window</button>
+              </div>
+            )}
+          </div>
+          
+          {/* Edit Menu */}
+          <div className="relative">
+            <button onClick={() => setActiveMenu(activeMenu === 'edit' ? null : 'edit')} className={cn("px-2 py-1 rounded transition-colors", activeMenu === 'edit' ? "bg-white/20" : "hover:bg-white/10")}>Edit</button>
+            {activeMenu === 'edit' && (
+              <div className="absolute top-full left-0 mt-1 w-48 bg-white/95 backdrop-blur-xl border border-slate-200/50 rounded-lg shadow-2xl py-1 text-slate-800">
+                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Undo</button>
+                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Redo</button>
+                <div className="h-px bg-slate-200/50 my-1" />
+                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Cut</button>
+                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Copy</button>
+                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Paste</button>
+              </div>
+            )}
+          </div>
+          
+          {/* View Menu */}
+          <div className="relative">
+            <button onClick={() => setActiveMenu(activeMenu === 'view' ? null : 'view')} className={cn("px-2 py-1 rounded transition-colors", activeMenu === 'view' ? "bg-white/20" : "hover:bg-white/10")}>View</button>
+            {activeMenu === 'view' && (
+              <div className="absolute top-full left-0 mt-1 w-48 bg-white/95 backdrop-blur-xl border border-slate-200/50 rounded-lg shadow-2xl py-1 text-slate-800">
+                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Enter Full Screen</button>
+                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Show Sidebar</button>
+              </div>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <Wifi className="w-3.5 h-3.5" />
-          <BatteryMedium className="w-4 h-4" />
-          <Search className="w-3.5 h-3.5" />
-          <span>{format(time, 'EEE MMM d  HH:mm')}</span>
+        
+        <div className="flex items-center gap-1 z-50">
+          {/* Wifi Menu */}
+          <div className="relative">
+            <button onClick={() => setActiveMenu(activeMenu === 'wifi' ? null : 'wifi')} className={cn("p-1.5 rounded transition-colors", activeMenu === 'wifi' ? "bg-white/20" : "hover:bg-white/10")}>
+              <Wifi className="w-3.5 h-3.5" />
+            </button>
+            {activeMenu === 'wifi' && (
+              <div className="absolute top-full right-0 mt-1 w-56 bg-white/95 backdrop-blur-xl border border-slate-200/50 rounded-lg shadow-2xl py-2 text-slate-800">
+                <div className="px-4 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">Network</div>
+                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm flex items-center justify-between">
+                  <span>SecureNet_5G</span>
+                  <Wifi className="w-3 h-3" />
+                </button>
+                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm flex items-center justify-between">
+                  <span>Guest_Network</span>
+                </button>
+                <div className="h-px bg-slate-200/50 my-1" />
+                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Network Preferences...</button>
+              </div>
+            )}
+          </div>
+          
+          {/* Battery Menu */}
+          <div className="relative">
+            <button onClick={() => setActiveMenu(activeMenu === 'battery' ? null : 'battery')} className={cn("p-1.5 rounded transition-colors", activeMenu === 'battery' ? "bg-white/20" : "hover:bg-white/10")}>
+              <BatteryMedium className="w-4 h-4" />
+            </button>
+            {activeMenu === 'battery' && (
+              <div className="absolute top-full right-0 mt-1 w-48 bg-white/95 backdrop-blur-xl border border-slate-200/50 rounded-lg shadow-2xl py-2 text-slate-800">
+                <div className="px-4 py-1 text-sm font-medium">Battery: 85%</div>
+                <div className="px-4 py-1 text-xs text-slate-500">Power Source: Power Adapter</div>
+                <div className="h-px bg-slate-200/50 my-1" />
+                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Battery Settings...</button>
+              </div>
+            )}
+          </div>
+          
+          <button className="p-1.5 hover:bg-white/10 rounded transition-colors">
+            <Search className="w-3.5 h-3.5" />
+          </button>
+          <span className="px-2">{format(time, 'EEE MMM d  HH:mm')}</span>
         </div>
       </div>
 

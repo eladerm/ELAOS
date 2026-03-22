@@ -3,6 +3,39 @@ import { TelemetryProvider, useTelemetry } from './TelemetryContext';
 import Desktop from './Desktop';
 import { Command, Lock } from 'lucide-react';
 
+function BootScreen({ onComplete }: { onComplete: () => void }) {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setProgress(p => {
+        if (p >= 100) {
+          clearInterval(interval);
+          setTimeout(onComplete, 500);
+          return 100;
+        }
+        return p + Math.floor(Math.random() * 15) + 5;
+      });
+    }, 200);
+    return () => clearInterval(interval);
+  }, [onComplete]);
+
+  return (
+    <div className="h-screen w-screen bg-black flex flex-col items-center justify-center cursor-none">
+      <Command className="w-20 h-20 text-white mb-12 animate-pulse" />
+      <div className="w-64 h-1 bg-white/10 rounded-full overflow-hidden">
+        <div 
+          className="h-full bg-white transition-all duration-200 ease-out" 
+          style={{ width: `${progress}%` }} 
+        />
+      </div>
+      <div className="text-white/40 text-[10px] mt-6 font-mono tracking-widest uppercase">
+        Loading ElaOS Kernel... {progress}%
+      </div>
+    </div>
+  );
+}
+
 function LoginScreen({ onLogin }: { onLogin: (user: string) => void }) {
   const [pin, setPin] = useState('');
   const { logEvent } = useTelemetry();
@@ -26,7 +59,7 @@ function LoginScreen({ onLogin }: { onLogin: (user: string) => void }) {
         <div className="w-24 h-24 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center mb-6 shadow-2xl">
           <Command className="w-10 h-10 text-white" />
         </div>
-        <h1 className="text-2xl font-medium text-white mb-8 tracking-wide">ElaOS Clinic</h1>
+        <h1 className="text-3xl font-medium text-white mb-8 tracking-widest">ElaOS</h1>
         
         <form onSubmit={handleLogin} className="flex flex-col items-center">
           <input
@@ -102,7 +135,7 @@ function ExitDialog({ onClose }: { onClose: () => void }) {
 }
 
 function AppContent() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [appState, setAppState] = useState<'booting' | 'login' | 'desktop'>('booting');
   const [showExitDialog, setShowExitDialog] = useState(false);
 
   useEffect(() => {
@@ -115,10 +148,14 @@ function AppContent() {
     }
   }, []);
 
-  if (!isAuthenticated) {
+  if (appState === 'booting') {
+    return <BootScreen onComplete={() => setAppState('login')} />;
+  }
+
+  if (appState === 'login') {
     return (
       <>
-        <LoginScreen onLogin={() => setIsAuthenticated(true)} />
+        <LoginScreen onLogin={() => setAppState('desktop')} />
         {showExitDialog && <ExitDialog onClose={() => setShowExitDialog(false)} />}
       </>
     );
@@ -126,7 +163,7 @@ function AppContent() {
 
   return (
     <>
-      <Desktop />
+      <Desktop onLock={() => setAppState('login')} />
       {showExitDialog && <ExitDialog onClose={() => setShowExitDialog(false)} />}
     </>
   );
