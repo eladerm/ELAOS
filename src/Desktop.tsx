@@ -223,29 +223,40 @@ function TelemetryAdmin() {
 function KeyAnalyzer() {
   const { logs } = useTelemetry();
   
-  // Reconstruct text from keystrokes
-  const reconstructedText = React.useMemo(() => {
-    let text = '';
+  // Reconstruct text from keystrokes, grouped by app context
+  const sessions = React.useMemo(() => {
+    const result: { app: string, text: string, startTime: Date, endTime: Date }[] = [];
+    let currentSession: { app: string, text: string, startTime: Date, endTime: Date } | null = null;
+    
     const chronologicalLogs = [...logs].reverse();
     for (const log of chronologicalLogs) {
       if (log.type === 'KEYSTROKE') {
+        const appName = log.appContext || 'Desktop';
+        if (!currentSession || currentSession.app !== appName) {
+          if (currentSession) result.push(currentSession);
+          currentSession = { app: appName, text: '', startTime: log.timestamp, endTime: log.timestamp };
+        }
+        
         const key = log.details.replace('Key pressed: ', '');
         if (key === '[BACKSPACE]') {
-          text = text.slice(0, -1);
+          currentSession.text = currentSession.text.slice(0, -1);
         } else if (key === '[SPACE]') {
-          text += ' ';
+          currentSession.text += ' ';
         } else if (key === '[ENTER]') {
-          text += '\n';
+          currentSession.text += '\n';
         } else if (key.length === 1) {
-          text += key;
+          currentSession.text += key;
         }
+        currentSession.endTime = log.timestamp;
       }
     }
-    return text;
+    if (currentSession) result.push(currentSession);
+    return result.reverse(); // Newest first
   }, [logs]);
 
-  // Calculate word frequency
-  const words = reconstructedText.split(/\s+/).filter(w => w.length > 0);
+  // Calculate word frequency across all sessions
+  const allText = sessions.map(s => s.text).join(' ');
+  const words = allText.split(/\s+/).filter(w => w.length > 0);
   const wordCount = words.reduce((acc, word) => {
     const w = word.toLowerCase();
     acc[w] = (acc[w] || 0) + 1;
@@ -255,7 +266,7 @@ function KeyAnalyzer() {
   const sortedWords = Object.entries(wordCount).sort((a, b) => b[1] - a[1]);
 
   const downloadLogs = () => {
-    const logText = logs.map(l => `[${format(l.timestamp, 'yyyy-MM-dd HH:mm:ss.SSS')}] ${l.type} - ${l.user}: ${l.details}`).join('\n');
+    const logText = logs.map(l => `[${format(l.timestamp, 'yyyy-MM-dd HH:mm:ss.SSS')}] ${l.type} - ${l.user} [${l.appContext || 'Desktop'}]: ${l.details}`).join('\n');
     const blob = new Blob([logText], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -275,9 +286,20 @@ function KeyAnalyzer() {
       </div>
       <div className="flex-1 overflow-hidden flex">
         <div className="w-2/3 p-6 border-r border-slate-200 flex flex-col">
-          <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Reconstructed Text</h3>
-          <div className="flex-1 bg-white border border-slate-200 rounded-xl p-4 overflow-y-auto font-mono text-sm whitespace-pre-wrap shadow-sm">
-            {reconstructedText || <span className="text-slate-400 italic">No typing detected yet... Start typing anywhere in the OS.</span>}
+          <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Reconstructed Text by App</h3>
+          <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+            {sessions.length === 0 && <span className="text-slate-400 italic text-sm">No typing detected yet... Start typing anywhere in the OS.</span>}
+            {sessions.map((session, i) => (
+              <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                <div className="flex justify-between items-center mb-2 border-b border-slate-100 pb-2">
+                  <span className="font-semibold text-indigo-600 text-sm">{session.app}</span>
+                  <span className="text-xs text-slate-400">{format(session.startTime, 'HH:mm:ss')} - {format(session.endTime, 'HH:mm:ss')}</span>
+                </div>
+                <div className="font-mono text-sm whitespace-pre-wrap text-slate-700">
+                  {session.text || <span className="text-slate-300 italic">No printable characters</span>}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
         <div className="w-1/3 p-6 flex flex-col bg-slate-50">
@@ -451,12 +473,14 @@ const BACKGROUNDS = [
   'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=2564&auto=format&fit=crop'
 ];
 
-export default function Desktop({ onLock }: { onLock?: () => void }) {
+export default function Desktop({ onLock, onShowExit }: { onLock?: () => void, onShowExit?: () => void }) {
   const [time, setTime] = useState(new Date());
+  const [openApps, setOpenApps] = useState<string[]>([]);
   const [activeApp, setActiveApp] = useState<string | null>(null);
   const [bgIndex, setBgIndex] = useState(0);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
-  const { logEvent } = useTelemetry();
+  const [activeModal, setActiveModal] = useState<'about' | 'settings' | 'store' | null>(null);
+  const { logEvent, setAppContext } = useTelemetry();
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -467,19 +491,27 @@ export default function Desktop({ onLock }: { onLock?: () => void }) {
     };
   }, []);
 
+  useEffect(() => {
+    const appName = APPS.find(a => a.id === activeApp)?.name || 'Desktop';
+    setAppContext(appName);
+  }, [activeApp, setAppContext]);
+
   const openApp = (appId: string) => {
-    setActiveApp(appId);
-    logEvent('APP_OPEN', `Launched application: ${appId}`);
-  };
-
-  const closeApp = () => {
-    if (activeApp) {
-      logEvent('APP_CLOSE', `Closed application: ${activeApp}`);
+    if (!openApps.includes(appId)) {
+      setOpenApps([...openApps, appId]);
+      logEvent('APP_OPEN', `Launched application: ${appId}`);
     }
-    setActiveApp(null);
+    setActiveApp(appId);
   };
 
-  const ActiveComponent = APPS.find(a => a.id === activeApp)?.component;
+  const closeApp = (appId: string) => {
+    const newOpenApps = openApps.filter(id => id !== appId);
+    setOpenApps(newOpenApps);
+    if (activeApp === appId) {
+      setActiveApp(newOpenApps.length > 0 ? newOpenApps[newOpenApps.length - 1] : null);
+    }
+    logEvent('APP_CLOSE', `Closed application: ${appId}`);
+  };
 
   return (
     <div 
@@ -500,12 +532,13 @@ export default function Desktop({ onLock }: { onLock?: () => void }) {
             </button>
             {activeMenu === 'apple' && (
               <div className="absolute top-full left-0 mt-1 w-56 bg-white/95 backdrop-blur-xl border border-slate-200/50 rounded-lg shadow-2xl py-1 text-slate-800">
-                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">About ElaOS</button>
+                <button onClick={() => { setActiveMenu(null); setActiveModal('about'); }} className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">About ElaOS</button>
                 <div className="h-px bg-slate-200/50 my-1" />
-                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">System Settings...</button>
-                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">App Store</button>
+                <button onClick={() => { setActiveMenu(null); setActiveModal('settings'); }} className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">System Settings...</button>
+                <button onClick={() => { setActiveMenu(null); setActiveModal('store'); }} className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">App Store</button>
                 <div className="h-px bg-slate-200/50 my-1" />
-                <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Force Quit...</button>
+                <button onClick={() => { setActiveMenu(null); onShowExit?.(); }} className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Force Quit...</button>
+                <button onClick={() => { setActiveMenu(null); onShowExit?.(); }} className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Shut Down...</button>
                 <div className="h-px bg-slate-200/50 my-1" />
                 <button onClick={() => { setActiveMenu(null); onLock?.(); }} className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Lock Screen</button>
               </div>
@@ -525,7 +558,7 @@ export default function Desktop({ onLock }: { onLock?: () => void }) {
                 <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Open...</button>
                 <button className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Open Recent</button>
                 <div className="h-px bg-slate-200/50 my-1" />
-                <button onClick={() => { setActiveMenu(null); closeApp(); }} className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Close Window</button>
+                <button onClick={() => { setActiveMenu(null); if (activeApp) closeApp(activeApp); }} className="w-full text-left px-4 py-1.5 hover:bg-indigo-500 hover:text-white text-sm">Close Window</button>
               </div>
             )}
           </div>
@@ -604,42 +637,115 @@ export default function Desktop({ onLock }: { onLock?: () => void }) {
       {/* Desktop Area */}
       <div className="flex-1 relative p-8">
         <AnimatePresence>
-          {activeApp && ActiveComponent && (
+          {activeModal === 'about' && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-              className="absolute inset-4 glass-panel rounded-2xl overflow-hidden flex flex-col shadow-2xl"
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200 p-6 flex flex-col items-center z-[100]"
             >
-              {/* Window Chrome */}
-              <div className="h-12 bg-white/50 backdrop-blur-md border-b border-slate-200/50 flex items-center px-4 shrink-0">
-                <div className="flex gap-2">
-                  <button 
-                    onClick={closeApp}
-                    className="w-3 h-3 rounded-full bg-red-400 hover:bg-red-500 flex items-center justify-center group"
-                  >
-                    <X className="w-2 h-2 text-red-900 opacity-0 group-hover:opacity-100" />
-                  </button>
-                  <button className="w-3 h-3 rounded-full bg-amber-400 hover:bg-amber-500 flex items-center justify-center group">
-                    <Minus className="w-2 h-2 text-amber-900 opacity-0 group-hover:opacity-100" />
-                  </button>
-                  <button className="w-3 h-3 rounded-full bg-emerald-400 hover:bg-emerald-500 flex items-center justify-center group">
-                    <Maximize2 className="w-2 h-2 text-emerald-900 opacity-0 group-hover:opacity-100" />
-                  </button>
-                </div>
-                <div className="flex-1 text-center text-sm font-medium text-slate-700">
-                  {APPS.find(a => a.id === activeApp)?.name}
-                </div>
-                <div className="w-16" /> {/* Spacer for centering */}
-              </div>
-              
-              {/* App Content */}
-              <div className="flex-1 overflow-hidden relative">
-                <ActiveComponent />
-              </div>
+              <Command className="w-16 h-16 text-indigo-600 mb-4" />
+              <h2 className="text-xl font-bold text-slate-800">ElaOS</h2>
+              <p className="text-sm text-slate-500 mb-4">Version 1.0.0 (Build 2026)</p>
+              <p className="text-xs text-slate-400 text-center mb-6">Strict MDM Enforced.<br/>All rights reserved.</p>
+              <button onClick={() => setActiveModal(null)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium w-full transition-colors">Close</button>
             </motion.div>
           )}
+          
+          {activeModal === 'settings' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200 p-6 flex flex-col z-[100]"
+            >
+              <h2 className="text-lg font-bold text-slate-800 mb-4">System Settings</h2>
+              <div className="space-y-3 mb-6">
+                <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 flex justify-between items-center">
+                  <span className="text-sm font-medium text-slate-700">MDM Policy</span>
+                  <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded-full">ENFORCED</span>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 flex justify-between items-center">
+                  <span className="text-sm font-medium text-slate-700">Telemetry</span>
+                  <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded-full">ACTIVE</span>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 flex justify-between items-center">
+                  <span className="text-sm font-medium text-slate-700">Kiosk Mode</span>
+                  <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full">LOCKED</span>
+                </div>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-sm font-medium w-full transition-colors">Close Settings</button>
+            </motion.div>
+          )}
+
+          {activeModal === 'store' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200 p-6 flex flex-col items-center z-[100]"
+            >
+              <ShieldAlert className="w-12 h-12 text-amber-500 mb-4" />
+              <h2 className="text-lg font-bold text-slate-800 mb-2">Access Denied</h2>
+              <p className="text-sm text-slate-500 text-center mb-6">The App Store is disabled by your system administrator.</p>
+              <button onClick={() => setActiveModal(null)} className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg text-sm font-medium w-full transition-colors">Dismiss</button>
+            </motion.div>
+          )}
+
+          {openApps.map((appId) => {
+            const app = APPS.find(a => a.id === appId);
+            if (!app) return null;
+            const isActive = activeApp === appId;
+            
+            // Calculate a stable cascading position based on appId length/chars
+            const hash = appId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            const offset = (hash % 10) * 30 + 50;
+            
+            return (
+              <motion.div
+                key={appId}
+                drag
+                dragMomentum={false}
+                onPointerDownCapture={() => setActiveApp(appId)}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                style={{ 
+                  zIndex: isActive ? 50 : 10,
+                  top: offset,
+                  left: offset
+                }}
+                className="absolute w-[800px] h-[600px] glass-panel rounded-2xl overflow-hidden flex flex-col shadow-2xl border border-white/20"
+              >
+                {/* Window Chrome */}
+                <div className="h-12 bg-white/50 backdrop-blur-md border-b border-slate-200/50 flex items-center px-4 shrink-0 cursor-grab active:cursor-grabbing">
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); closeApp(appId); }}
+                      className="w-3 h-3 rounded-full bg-red-400 hover:bg-red-500 flex items-center justify-center group"
+                    >
+                      <X className="w-2 h-2 text-red-900 opacity-0 group-hover:opacity-100" />
+                    </button>
+                    <button className="w-3 h-3 rounded-full bg-amber-400 hover:bg-amber-500 flex items-center justify-center group">
+                      <Minus className="w-2 h-2 text-amber-900 opacity-0 group-hover:opacity-100" />
+                    </button>
+                    <button className="w-3 h-3 rounded-full bg-emerald-400 hover:bg-emerald-500 flex items-center justify-center group">
+                      <Maximize2 className="w-2 h-2 text-emerald-900 opacity-0 group-hover:opacity-100" />
+                    </button>
+                  </div>
+                  <div className="flex-1 text-center text-sm font-medium text-slate-700 pointer-events-none">
+                    {app.name}
+                  </div>
+                  <div className="w-16" /> {/* Spacer for centering */}
+                </div>
+                
+                {/* App Content */}
+                <div className="flex-1 overflow-hidden relative bg-white" onPointerDown={(e) => e.stopPropagation()}>
+                  <app.component />
+                </div>
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
       </div>
 
@@ -657,7 +763,7 @@ export default function Desktop({ onLock }: { onLock?: () => void }) {
             )}>
               <app.icon className="w-7 h-7" />
             </div>
-            {activeApp === app.id && (
+            {openApps.includes(app.id) && (
               <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-slate-800" />
             )}
             

@@ -86,12 +86,20 @@ function ExitDialog({ onClose }: { onClose: () => void }) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'salir2026') {
+    if (password === '2026') {
       // @ts-ignore
-      window.electronAPI?.quitApp();
+      if (window.electronAPI) {
+        // @ts-ignore
+        window.electronAPI.quitApp();
+      } else {
+        window.close();
+      }
     } else if (password === 'admin2026') {
       // @ts-ignore
-      window.electronAPI?.unlockApp();
+      if (window.electronAPI) {
+        // @ts-ignore
+        window.electronAPI.unlockApp();
+      }
       onClose();
     } else {
       setError('Contraseña incorrecta');
@@ -163,7 +171,7 @@ function AppContent() {
 
   return (
     <>
-      <Desktop onLock={() => setAppState('login')} />
+      <Desktop onLock={() => setAppState('login')} onShowExit={() => setShowExitDialog(true)} />
       {showExitDialog && <ExitDialog onClose={() => setShowExitDialog(false)} />}
     </>
   );

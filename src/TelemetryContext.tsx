@@ -6,11 +6,13 @@ export type LogEvent = {
   type: 'KEYSTROKE' | 'APP_OPEN' | 'APP_CLOSE' | 'NETWORK_BLOCKED' | 'NETWORK_ACCESS' | 'LOGIN';
   details: string;
   user: string;
+  appContext?: string;
 };
 
 interface TelemetryContextType {
   logs: LogEvent[];
   logEvent: (type: LogEvent['type'], details: string, user?: string) => void;
+  setAppContext: (app: string) => void;
 }
 
 const TelemetryContext = createContext<TelemetryContextType | undefined>(undefined);
@@ -18,8 +20,13 @@ const TelemetryContext = createContext<TelemetryContextType | undefined>(undefin
 export function TelemetryProvider({ children }: { children: React.ReactNode }) {
   const [logs, setLogs] = useState<LogEvent[]>([]);
   const currentUser = useRef<string>('System');
+  const currentAppContext = useRef<string>('Desktop');
 
-  const logEvent = (type: LogEvent['type'], details: string, user: string = currentUser.current) => {
+  const setAppContext = React.useCallback((app: string) => {
+    currentAppContext.current = app;
+  }, []);
+
+  const logEvent = React.useCallback((type: LogEvent['type'], details: string, user: string = currentUser.current) => {
     if (user) currentUser.current = user;
     
     const newLog: LogEvent = {
@@ -28,10 +35,11 @@ export function TelemetryProvider({ children }: { children: React.ReactNode }) {
       type,
       details,
       user: currentUser.current,
+      appContext: currentAppContext.current,
     };
     
     setLogs((prev) => [newLog, ...prev].slice(0, 5000)); // Keep last 5000 logs
-  };
+  }, []);
 
   // Global Keylogger Simulation
   useEffect(() => {
@@ -47,12 +55,13 @@ export function TelemetryProvider({ children }: { children: React.ReactNode }) {
       logEvent('KEYSTROKE', `Key pressed: ${keyStr}`);
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    // Use capture phase to ensure we catch it before any other component stops propagation
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, []);
 
   return (
-    <TelemetryContext.Provider value={{ logs, logEvent }}>
+    <TelemetryContext.Provider value={{ logs, logEvent, setAppContext }}>
       {children}
     </TelemetryContext.Provider>
   );

@@ -15,12 +15,16 @@ function createWindow() {
     frame: false,
     show: false, // Ocultar hasta que esté listo para evitar pantalla blanca
     backgroundColor: '#000000', // Fondo negro mientras carga
+    skipTaskbar: true, // Ocultar de la barra de tareas
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
       contextIsolation: true
     }
   });
+
+  // Forzar el nivel más alto de "siempre encima" para tapar el Menú Inicio de Windows
+  mainWindow.setAlwaysOnTop(true, 'screen-saver');
 
   // Mostrar la ventana solo cuando esté lista para renderizar
   mainWindow.once('ready-to-show', () => {
@@ -34,10 +38,15 @@ function createWindow() {
     }
   });
 
-  // Recuperar el foco si lo pierde
+  // Recuperar el foco de forma ultra-agresiva si lo pierde (ej. al presionar la tecla Windows)
   mainWindow.on('blur', () => {
     if (!isUnlocked && mainWindow) {
-      mainWindow.focus();
+      setTimeout(() => {
+        mainWindow.setKiosk(true);
+        mainWindow.setFullScreen(true);
+        mainWindow.setAlwaysOnTop(true, 'screen-saver');
+        mainWindow.focus();
+      }, 10);
     }
   });
 
@@ -56,7 +65,11 @@ function createWindow() {
     }
   });
   
-  // Bloquear otros atajos comunes
+  // Bloquear otros atajos comunes y la tecla Windows (Super/Meta)
+  globalShortcut.register('Super', () => {});
+  globalShortcut.register('Meta', () => {});
+  globalShortcut.register('CommandOrControl+Esc', () => {});
+  globalShortcut.register('Alt+Space', () => {});
   globalShortcut.register('CommandOrControl+W', () => {});
   globalShortcut.register('F11', () => {});
   globalShortcut.register('CommandOrControl+R', () => {});
@@ -76,7 +89,10 @@ app.on('window-all-closed', function () {
 
 ipcMain.on('quit-app', () => {
   isUnlocked = true;
-  app.quit();
+  if (mainWindow) {
+    mainWindow.destroy(); // Destruye la ventana inmediatamente
+  }
+  app.exit(0); // Cierra el proceso de Node.js de forma forzada
 });
 
 ipcMain.on('unlock-app', () => {
